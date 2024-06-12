@@ -67,4 +67,4 @@ def spotify_callback(request):
         print(user_info_response.text)
         return JsonResponse({'error': 'Invalid response from Spotify API'}, status=500)
 
-    return JsonResponse(user_info)
+    return redirect('http://localhost:3000/diary?access_token=' + access_token)
