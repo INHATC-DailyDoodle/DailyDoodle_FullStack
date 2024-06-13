@@ -9,4 +9,5 @@ urlpatterns = [
     path('logout/', SignUpAPI.as_view(), name='logout'),
     path('spotify-login/', spotify_login, name='spotify-login'),
     path('spotify-callback/', spotify_callback, name='spotify-callback'),
+    path('diary/', DiaryEntryAPI.as_view(), name='diary-entry')
 ]

@@ -7,6 +7,8 @@ import requests
 from django.shortcuts import redirect
 from django.http import JsonResponse
 from django.conf import settings
+import pickle
+import os
 
 class UserListView(generics.ListAPIView):
     queryset = User.objects.all()
@@ -68,3 +70,30 @@ def spotify_callback(request):
         return JsonResponse({'error': 'Invalid response from Spotify API'}, status=500)
 
     return redirect('http://localhost:3000/diary?access_token=' + access_token)
+
+class DiaryEntryAPI(APIView):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        model_path = os.path.join(os.path.dirname(__file__), 'sentiment_model.pkl')
+        vectorizer_path = os.path.join(os.path.dirname(__file__), 'vectorizer.pkl')
+        label_encoder_path = os.path.join(os.path.dirname(__file__), 'label_encoder.pkl')
+        
+        with open(model_path, 'rb') as model_file:
+            self.model = pickle.load(model_file)
+        
+        with open(vectorizer_path, 'rb') as vectorizer_file:
+            self.vectorizer = pickle.load(vectorizer_file)
+        
+        with open(label_encoder_path, 'rb') as label_encoder_file:
+            self.label_encoder = pickle.load(label_encoder_file)
+
+    def post(self, request):
+        text = request.data.get('text')
+        if not text:
+            return Response({'error': 'No text provided'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        text_vectorized = self.vectorizer.transform([text]).toarray()
+        predicted_emotion_index = self.model.predict(text_vectorized)
+        predicted_emotion = self.label_encoder.inverse_transform(predicted_emotion_index)
+        
+        return Response({'result': predicted_emotion[0]}, status=status.HTTP_200_OK)

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'drf_yasg',
     'rest_framework_simplejwt',
     'corsheaders',
+    
 
 ]
 
@@ -55,6 +56,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    
 ]
 
 ROOT_URLCONF = 'dd_project.urls'
