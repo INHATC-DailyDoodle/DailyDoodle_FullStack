@@ -11,6 +11,7 @@ import pickle
 import os
 from .models import Diary
 from django.db import IntegrityError
+from .serializers import DiarySerializer
 
 class UserListView(generics.ListAPIView):
     queryset = DjangoUser.objects.all()  # Django의 기본 User 모델 사용
@@ -120,3 +121,14 @@ class DiaryEntryAPI(APIView):
             return Response({'error': 'Error saving diary entry', 'details': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({'result': predicted_emotion[0]}, status=status.HTTP_200_OK)
+
+
+class DiaryListAPI(generics.ListAPIView):
+    serializer_class = DiarySerializer
+
+    def get_queryset(self):
+        user_id = self.request.query_params.get('user_id')
+        if user_id:
+            return Diary.objects.filter(user_id=user_id).order_by('-created_at')
+        else:
+            return Diary.objects.none()
