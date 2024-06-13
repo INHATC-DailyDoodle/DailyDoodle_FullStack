@@ -11,5 +11,6 @@ urlpatterns = [
     path('spotify-callback/', spotify_callback, name='spotify-callback'),
     path('diary/', DiaryEntryAPI.as_view(), name='diary-entry'),
     path('diary/list/', DiaryListAPI.as_view(), name='diary-list'),
+    path('mood-playlists/', MoodPlaylistAPI.as_view(), name='mood-playlists'),
     
 ]

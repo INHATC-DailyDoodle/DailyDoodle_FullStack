@@ -1,24 +1,23 @@
 from rest_framework import generics, status
-from django.contrib.auth.models import User as DjangoUser  # Django의 기본 User 모델
-from .serializers import UserSerializer
+from django.contrib.auth.models import User as DjangoUser
+from .serializers import UserSerializer, DiarySerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 import requests
+import os
+import pickle
+from .models import Diary
 from django.shortcuts import redirect
 from django.http import JsonResponse
 from django.conf import settings
-import pickle
-import os
-from .models import Diary
-from django.db import IntegrityError
-from .serializers import DiarySerializer
+import base64
 
 class UserListView(generics.ListAPIView):
-    queryset = DjangoUser.objects.all()  # Django의 기본 User 모델 사용
+    queryset = DjangoUser.objects.all()
     serializer_class = UserSerializer
 
 class UserDetailView(generics.RetrieveAPIView):
-    queryset = DjangoUser.objects.all()  # Django의 기본 User 모델 사용
+    queryset = DjangoUser.objects.all()
     serializer_class = UserSerializer
 
 class SignUpAPI(APIView):
@@ -69,9 +68,8 @@ def spotify_callback(request):
         user.set_unusable_password()
         user.save()
 
-    # user_id를 클라이언트에 전달
     response = redirect('http://localhost:3000/diary?access_token=' + access_token)
-    response.set_cookie('user_id', user.id)  # user_id를 쿠키로 설정
+    response.set_cookie('user_id', user.id)
 
     return response
 
@@ -101,7 +99,7 @@ class DiaryEntryAPI(APIView):
             return Response({'error': 'No user ID provided'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            user = DjangoUser.objects.get(id=user_id)  # Django의 기본 User 모델 사용
+            user = DjangoUser.objects.get(id=user_id)
         except DjangoUser.DoesNotExist:
             return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
@@ -122,7 +120,6 @@ class DiaryEntryAPI(APIView):
 
         return Response({'result': predicted_emotion[0]}, status=status.HTTP_200_OK)
 
-
 class DiaryListAPI(generics.ListAPIView):
     serializer_class = DiarySerializer
 
@@ -132,3 +129,37 @@ class DiaryListAPI(generics.ListAPIView):
             return Diary.objects.filter(user_id=user_id).order_by('-created_at')
         else:
             return Diary.objects.none()
+
+class MoodPlaylistAPI(APIView):
+    def get_access_token(self):
+        client_id = settings.SPOTIFY_CLIENT_ID
+        client_secret = settings.SPOTIFY_CLIENT_SECRET
+        url = 'https://accounts.spotify.com/api/token'
+        headers = {
+            'Authorization': 'Basic ' + base64.b64encode(f'{client_id}:{client_secret}'.encode()).decode('utf-8')
+        }
+        payload = {
+            'grant_type': 'client_credentials'
+        }
+        response = requests.post(url, headers=headers, data=payload)
+        access_token = response.json().get('access_token')
+        return access_token
+
+    def search_playlists(self, query):
+        access_token = self.get_access_token()
+        url = f'https://api.spotify.com/v1/search?q={query}&type=playlist&limit=10'
+        headers = {
+            'Authorization': f'Bearer {access_token}'
+        }
+        response = requests.get(url, headers=headers)
+        playlists = response.json().get('playlists', {}).get('items', [])
+        return playlists
+
+    def post(self, request):
+        mood = request.data.get('mood')
+
+        if not mood:
+            return Response({'error': 'No mood provided'}, status=status.HTTP_400_BAD_REQUEST)
+
+        playlists = self.search_playlists(mood)
+        return Response({'items': playlists}, status=status.HTTP_200_OK)
