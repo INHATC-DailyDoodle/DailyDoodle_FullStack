@@ -130,6 +130,20 @@ class DiaryListAPI(generics.ListAPIView):
         else:
             return Diary.objects.none()
 
+import requests
+import base64
+from django.conf import settings
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
+import requests
+import base64
+from django.conf import settings
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+
 class MoodPlaylistAPI(APIView):
     def get_access_token(self):
         client_id = settings.SPOTIFY_CLIENT_ID
@@ -145,9 +159,10 @@ class MoodPlaylistAPI(APIView):
         access_token = response.json().get('access_token')
         return access_token
 
-    def search_playlists(self, query):
+    def search_playlists(self, query, market='KR', limit=30):
         access_token = self.get_access_token()
-        url = f'https://api.spotify.com/v1/search?q={query}&type=playlist&limit=10'
+        # Spotify API의 q 파라미터에 키워드를 포함하되, '주님', '찬양', '찬송' 키워드를 제외하여 검색
+        url = f'https://api.spotify.com/v1/search?q={query} -주님 -찬양 -찬송&type=playlist&limit={limit}&market={market}'
         headers = {
             'Authorization': f'Bearer {access_token}'
         }
